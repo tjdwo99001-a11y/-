@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>REST Online 스킬 쉼터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* 레이아웃: 석양 언덕 히어로 → 고정 필터 바 → 직업별 스킬 카드 그리드, 상세는 오른쪽 패널 */
+:root{
+  --ink:#3b2418; --ink-soft:#7a5a45; --paper:#fbf1dc; --paper-2:#f3e2c0; --line:#dcc293;
+  --maple:#c2410c; --maple-deep:#8f2a0b; --gold:#e8a33d; --moss:#5f6b2f; --night:#2a1810;
+  --display:'Gowun Batang','Nanum Myeongjo',serif; --body:'Noto Sans KR','Malgun Gothic',sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);color-scheme:light}
+body{min-height:100%}
+a{color:var(--maple-deep)}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.hero{position:relative;height:300px;overflow:hidden;background:linear-gradient(#f7c98a 0%,#f2a35e 55%,#e9804a 100%)}
+.hero svg{position:absolute;inset:0;width:100%;height:100%}
+#leaves{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hero-text{position:relative;max-width:1100px;margin:0 auto;padding:44px 20px 0;color:var(--night)}
+.hero-text h1{font-family:var(--display);font-size:clamp(34px,6vw,56px);margin:0;letter-spacing:.02em;text-shadow:0 2px 0 rgba(255,236,200,.6)}
+.hero-text h1 span{color:var(--maple-deep)}
+.hero-text p{margin:8px 0 0;font-size:15px;max-width:420px;line-height:1.6;color:#4a2a17}
+.badge{display:inline-block;margin-top:14px;padding:4px 12px;border-radius:99px;background:rgba(42,24,16,.85);color:#ffe7bd;font-size:13px}
+.bar{position:sticky;top:0;z-index:20;background:var(--paper);border-bottom:2px solid var(--line);box-shadow:0 6px 14px -10px rgba(59,36,24,.5)}
+.bar-in{max-width:1100px;margin:0 auto;padding:12px 16px;display:grid;gap:10px}
+.search{display:flex;gap:8px}
+.search input{flex:1;min-width:0;padding:11px 14px;border:2px solid var(--line);border-radius:10px;background:#fffaf0;font:inherit;color:var(--ink)}
+.search input:focus{border-color:var(--maple);outline:none}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.tab,.chip{flex:none;border:2px solid var(--line);background:#fffaf0;color:var(--ink);border-radius:99px;padding:6px 14px;font:inherit;font-size:14px;cursor:pointer}
+.tab[aria-pressed=true]{background:var(--maple);border-color:var(--maple-deep);color:#fff;font-weight:700}
+.chip{padding:4px 11px;font-size:13px;background:var(--paper-2)}
+.chip[aria-pressed=true]{background:var(--moss);border-color:#46501f;color:#fff}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+main{max-width:1100px;margin:0 auto;padding:18px 16px 60px}
+.note{background:#fff3d6;border:2px dashed var(--gold);border-radius:12px;padding:10px 14px;font-size:13.5px;line-height:1.6;margin-bottom:18px}
+.job{margin:0 0 26px}
+.job h2{font-family:var(--display);font-size:22px;margin:0 0 10px;display:flex;align-items:baseline;gap:10px}
+.job h2 small{font-family:var(--body);font-size:12.5px;color:var(--ink-soft);font-weight:400}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.card{display:flex;gap:10px;align-items:center;text-align:left;width:100%;padding:9px 10px;border:2px solid var(--line);border-radius:12px;background:#fffaf0;color:var(--ink);font:inherit;cursor:pointer;transition:transform .12s,border-color .12s}
+.card:hover{transform:translateY(-2px);border-color:var(--maple)}
+.card[aria-current=true]{border-color:var(--maple);background:#ffeccc}
+.card .t{min-width:0}
+.card .nm{font-weight:700;font-size:14px;overflow-wrap:anywhere}
+.card .sub{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.ico{flex:none;width:48px;height:48px;background-image:url(icons.png);background-size:calc(1024px*1.5) auto;image-rendering:pixelated;border-radius:6px}
+.ico.lg{width:64px;height:64px;background-size:calc(1024px*2) auto}
+.ico.none{background:var(--paper-2)}
+.empty{padding:40px 0;text-align:center;color:var(--ink-soft)}
+aside{position:fixed;z-index:30;top:0;right:0;bottom:0;width:min(460px,100%);background:var(--paper);border-left:3px solid var(--maple);box-shadow:-12px 0 30px rgba(42,24,16,.3);transform:translateX(105%);transition:transform .22s;overflow-y:auto;padding:18px 18px 40px}
+aside.open{transform:none}
+.close{float:right;border:2px solid var(--line);background:#fffaf0;border-radius:10px;padding:6px 12px;font:inherit;cursor:pointer;color:var(--ink)}
+.dh{display:flex;gap:14px;align-items:center;margin:6px 0 14px;clear:both}
+.dh h3{font-family:var(--display);margin:0;font-size:22px;overflow-wrap:anywhere}
+.dh p{margin:3px 0 0;font-size:13px;color:var(--ink-soft)}
+.facts{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.fact{background:var(--paper-2);border-radius:8px;padding:4px 10px;font-size:13px}
+.lvl{background:#fffaf0;border:2px solid var(--line);border-radius:12px;padding:12px;margin-bottom:14px}
+.lvl label{display:flex;justify-content:space-between;font-weight:700;font-size:14px}
+.lvl input[type=range]{width:100%;accent-color:var(--maple);margin:8px 0}
+.hint{font-size:13.5px;line-height:1.6;background:#fff3d6;border-radius:8px;padding:6px 10px;margin:4px 0 8px;min-height:0}.hint:empty{display:none}
+.now{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}
+.now div{background:var(--paper-2);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--ink-soft)}
+.now b{display:block;font-size:16px;color:var(--ink)}
+.req{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.req button{display:flex;gap:6px;align-items:center;border:2px solid var(--line);background:#fffaf0;border-radius:10px;padding:3px 10px 3px 4px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
+.req .ico{width:32px;height:32px;background-size:calc(1024px)  auto}
+.tw{overflow-x:auto;border:2px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums;background:#fffaf0}
+th,td{padding:5px 9px;text-align:right;white-space:nowrap}
+th{position:sticky;top:0;background:var(--paper-2);font-size:12px}
+tr.sel td{background:#ffe1ad;font-weight:700}
+tr:nth-child(even) td{background:#fcf3df}
+tr.sel:nth-child(even) td{background:#ffe1ad}
+td:first-child,th:first-child{text-align:center}
+.scrim{position:fixed;inset:0;background:rgba(42,24,16,.35);z-index:25;display:none}
+.scrim.on{display:block}
+footer{text-align:center;padding:26px 16px 40px;background:var(--night);color:#e9cfa0;font-size:13px;line-height:1.8}
+footer b{font-family:var(--display);font-size:18px;color:#ffd48a}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="hero" aria-label="REST Online">
+<svg viewBox="0 0 1200 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+  <circle cx="930" cy="120" r="64" fill="#ffe3a8" opacity=".9"/>
+  <path d="M0 200 C150 150 300 190 450 170 S800 140 1000 175 S1150 170 1200 160 V300 H0Z" fill="#d9744a"/>
+  <path d="M0 225 C200 190 380 235 600 215 S950 180 1200 220 V300 H0Z" fill="#a8532e"/>
+  <path d="M0 262 C250 225 450 270 700 250 S1050 225 1200 255 V300 H0Z" fill="#6f7a35"/>
+  <g transform="translate(860 120)">
+    <path d="M-10 140 C-6 100 -14 70 -22 40 L-6 40 C0 60 6 60 12 40 L28 40 C20 70 12 100 16 140Z" fill="#5a3320"/>
+    <g>
+      <circle cx="-70" cy="10" r="52" fill="#b6360c"/><circle cx="-10" cy="-30" r="64" fill="#d4520f"/>
+      <circle cx="55" cy="5" r="55" fill="#c2410c"/><circle cx="-25" cy="30" r="48" fill="#e07a1a"/>
+      <circle cx="35" cy="35" r="42" fill="#ec9a2b"/><circle cx="-90" cy="45" r="30" fill="#e07a1a"/>
+      <circle cx="95" cy="40" r="28" fill="#b6360c"/><circle cx="10" cy="-5" r="34" fill="#f0b03a" opacity=".8"/>
+    </g>
+  </g>
+  <g transform="translate(700 232)">
+    <rect x="0" y="0" width="86" height="8" rx="2" fill="#7a4a2a"/><rect x="0" y="-18" width="86" height="6" rx="2" fill="#7a4a2a"/>
+    <rect x="4" y="-18" width="4" height="30" fill="#5a3320"/><rect x="78" y="-18" width="4" height="30" fill="#5a3320"/>
+    <rect x="10" y="8" width="5" height="16" fill="#5a3320"/><rect x="71" y="8" width="5" height="16" fill="#5a3320"/>
+  </g>
+  <g transform="translate(1040 214)">
+    <rect x="-2" y="0" width="4" height="48" fill="#4a2a17"/>
+    <rect x="-12" y="-22" width="24" height="26" rx="4" fill="#ffd27a"/><rect x="-14" y="-26" width="28" height="6" fill="#4a2a17"/>
+  </g>
+</svg>
+<canvas id="leaves"></canvas>
+<div class="hero-text">
+  <h1>REST <span>Online</span></h1>
+  <p>단풍나무 언덕 위 쉼터에서 직업별 스킬을 천천히 둘러보세요.</p>
+  <span class="badge">KMS 1.2.95 · 스킬 <span id="cnt">0</span>개</span>
+</div>
+</header>
+
+<div class="bar"><div class="bar-in">
+  <div class="search"><input id="q" type="search" placeholder="스킬 이름 또는 번호로 검색" aria-label="스킬 검색"></div>
+  <div class="tabs" id="tabs" role="group" aria-label="직업군"></div>
+  <div class="chips" id="chips" role="group" aria-label="직업"></div>
+</div></div>
+
+<main>
+  <div class="note" id="note"></div>
+  <div id="list"></div>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside id="panel" aria-label="스킬 상세" aria-hidden="true"></aside>
+
+<footer><b>REST Online</b><br>단풍나무 언덕 쉼터 · 잠깐 앉았다 가세요</footer>
+
+<script src="data.js"></script>
+<script src="names.js"></script>
+<script>
+(function(){
+var D=window.REST_DATA, N=window.REST_NAMES||{};
+var LABEL={mpCon:'MP 소모',hpCon:'HP 소모',damage:'데미지(%)',mobCount:'타격 수',attackCount:'공격 횟수',time:'지속(초)',prop:'확률(%)',cooltime:'쿨타임(초)',range:'범위',mastery:'숙련도(%)',pad:'공격력',mad:'마력',pdd:'물리방어',mdd:'마법방어',acc:'명중',eva:'회피',speed:'이동속도',jump:'점프력',x:'효과 x',y:'효과 y',z:'효과 z',hp:'HP',mp:'MP',str:'STR',bulletCount:'발사 수',bulletConsume:'소모 탄',itemCon:'소모 아이템',itemConNo:'소모 개수',moneyCon:'메소 소모',criticalDamage:'크리 데미지',fixdamage:'고정 데미지',damagepc:'데미지(%)',subTime:'보조 시간',dateExpire:'만료일'};
+var BR=['전사','마법사','궁수','도적','해적','시그너스','아란','에반','레지스탕스','기타'];
+var branchKey={}; BR.forEach(function(b,i){branchKey[b]='b'+i});
+var byId={}, jobs={};
+D.jobs.forEach(function(j){jobs[j.id]=j});
+D.skills.forEach(function(s){byId[s.id]=s});
+document.getElementById('cnt').textContent=D.skills.length;
+var state={branch:'전체',job:null,q:'',sel:null};
+function nm(s){var n=N[s.id];return (n&&n[0])||s.n||('스킬 '+s.id)}
+function hasName(s){return !!((N[s.id]&&N[s.id][0])||s.n)}
+function jobLabel(j){var t=j.t===0?'초보':j.t+'차';return j.n+' ('+t+')'}
+function icoStyle(s,scale){
+  if(s.ic<0) return '';
+  var c=D.cell*scale, x=(s.ic%D.cols)*c, y=Math.floor(s.ic/D.cols)*c;
+  return 'background-position:-'+x+'px -'+y+'px';
+}
+function icoHtml(s,cls,scale){return '<span class="ico '+(cls||'')+(s.ic<0?' none':'')+'" style="'+icoStyle(s,scale)+'"></span>'}
+function fmt(t){return esc(t).replace(/\\n|\n/g,'<br>').replace(/#c([^#]*)#/g,'<b style="color:var(--maple-deep)">$1</b>').replace(/#/g,'')}
+function el(id){return document.getElementById(id)}
+function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+function renderNote(){
+  var miss=D.skills.filter(function(s){return !hasName(s)}).length;
+  el('note').innerHTML='KMS 1.2.95 클라이언트 데이터 기준 스킬 정보입니다.'+(miss?' 이름 정보가 없는 숨김 스킬 '+miss+'개는 번호로 표시돼요.':'');
+}
+function renderTabs(){
+  var h='<button class="tab" aria-pressed="'+(state.branch==='전체')+'" data-b="전체">전체</button>';
+  BR.forEach(function(b){ if(D.jobs.some(function(j){return j.b===b})) h+='<button class="tab" aria-pressed="'+(state.branch===b)+'" data-b="'+b+'">'+b+'</button>'});
+  el('tabs').innerHTML=h;
+  var cs='';
+  if(state.branch!=='전체'){
+    cs='<button class="chip" aria-pressed="'+(state.job===null)+'" data-j="">전체 직업</button>';
+    D.jobs.filter(function(j){return j.b===state.branch}).forEach(function(j){
+      cs+='<button class="chip" aria-pressed="'+(state.job===j.id)+'" data-j="'+j.id+'">'+esc(jobLabel(j))+'</button>'});
+  }
+  el('chips').innerHTML=cs;
+}
+function match(s){
+  if(state.branch!=='전체' && jobs[s.job].b!==state.branch) return false;
+  if(state.job!==null && s.job!==state.job) return false;
+  if(state.q){
+    var q=state.q.toLowerCase();
+    var n=nm(s).toLowerCase(), d=((N[s.id]&&N[s.id][1])||'').toLowerCase();
+    if(String(s.id).indexOf(q)<0 && n.indexOf(q)<0 && d.indexOf(q)<0) return false;
+  }
+  return true;
+}
+function renderList(){
+  var out='', any=false;
+  D.jobs.forEach(function(j){
+    var ss=D.skills.filter(function(s){return s.job===j.id && match(s)});
+    if(!ss.length) return; any=true;
+    out+='<section class="job"><h2>'+esc(j.n)+'<small>'+(j.t===0?'초보':j.t+'차 전직')+' · '+j.b+' · '+ss.length+'개</small></h2><div class="grid">';
+    ss.forEach(function(s){
+      out+='<button class="card" data-id="'+s.id+'" aria-current="'+(state.sel===s.id)+'">'+icoHtml(s,'',1.5)+'<span class="t"><span class="nm">'+esc(nm(s))+'</span><div class="sub">'+(s.ml?'최대 Lv.'+s.ml+' · ':'')+s.id+'</div></span></button>';
+    });
+    out+='</div></section>';
+  });
+  el('list').innerHTML= any?out:'<div class="empty">찾는 스킬이 없어요. 다른 단어로 검색해 보세요.</div>';
+}
+function openSkill(id,keepLv){
+  var s=byId[id]; if(!s) return; state.sel=id;
+  var p=el('panel'), j=jobs[s.job], max=s.rows.length||s.ml||1;
+  var lv=keepLv||1;
+  var h='<button class="close" id="x">닫기</button><div class="dh">'+icoHtml(s,'lg',2)+'<div><h3>'+esc(nm(s))+'</h3><p>'+esc(jobLabel(j))+' · 번호 '+s.id+'</p></div></div>';
+  var desc=N[s.id]&&N[s.id][1]; if(desc) h+='<p style="line-height:1.7;margin:0 0 14px">'+fmt(desc)+'</p>';
+  h+='<div class="facts"><span class="fact">최대 레벨 '+(s.ml||max)+'</span>'+(s.mst?'<span class="fact">마스터 레벨 '+s.mst+'</span>':'')+(s.inv?'<span class="fact">숨김 스킬</span>':'')+'</div>';
+  if(s.req){ h+='<div style="font-size:13px;font-weight:700;margin-bottom:6px">선행 스킬</div><div class="req">';
+    s.req.forEach(function(r){var q=byId[r[0]]; h+= q?'<button data-id="'+q.id+'">'+icoHtml(q,'',1)+esc(nm(q))+' Lv.'+r[1]+'</button>':'<span class="fact">'+r[0]+' Lv.'+r[1]+'</span>'});
+    h+='</div>'; }
+  if(s.rows.length&&s.cols.length){
+    h+='<div class="lvl"><label for="lv"><span>레벨</span><span id="lvn">'+lv+'</span></label><input id="lv" type="range" min="1" max="'+s.rows.length+'" value="'+lv+'"><div class="hint" id="hint"></div><div class="now" id="now"></div></div>';
+    h+='<div class="tw"><table><thead><tr><th>Lv</th>'+s.cols.map(function(c){return '<th>'+(LABEL[c]||c)+'</th>'}).join('')+'</tr></thead><tbody>'+
+      s.rows.map(function(r,i){return '<tr data-r="'+(i+1)+'"><td>'+(i+1)+'</td>'+r.map(function(v){return '<td>'+(v==null?'-':v)+'</td>'}).join('')+'</tr>'}).join('')+'</tbody></table></div>';
+  } else h+='<p style="color:var(--ink-soft);font-size:14px">레벨별 수치 정보가 없는 스킬이에요.</p>';
+  p.innerHTML=h; p.classList.add('open'); p.setAttribute('aria-hidden','false'); el('scrim').classList.add('on'); p.scrollTop=0;
+  el('x').onclick=closeP;
+  if(s.rows.length&&s.cols.length){
+    var sl=el('lv');
+    function upd(){
+      var L=+sl.value; el('lvn').textContent=L+' / '+s.rows.length;
+      var r=s.rows[L-1], hn='';
+      s.cols.forEach(function(c,i){ if(r[i]!=null) hn+='<div>'+(LABEL[c]||c)+'<b>'+r[i]+'</b></div>' });
+      el('now').innerHTML=hn; var hh=N[s.id]&&N[s.id][2]; el('hint').textContent=(hh&&hh[L-1])||'';
+      Array.prototype.forEach.call(p.querySelectorAll('tbody tr'),function(tr){tr.classList.toggle('sel',+tr.dataset.r===L)});
+    }
+    sl.oninput=upd; upd();
+    Array.prototype.forEach.call(p.querySelectorAll('tbody tr'),function(tr){tr.onclick=function(){sl.value=tr.dataset.r;upd()}});
+  }
+  renderList();
+}
+function closeP(){var p=el('panel');p.classList.remove('open');p.setAttribute('aria-hidden','true');el('scrim').classList.remove('on');state.sel=null;renderList();}
+el('scrim').onclick=closeP;
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeP()});
+el('tabs').addEventListener('click',function(e){var b=e.target.closest('[data-b]');if(!b)return;state.branch=b.dataset.b;state.job=null;sync();});
+el('chips').addEventListener('click',function(e){var b=e.target.closest('[data-j]');if(!b)return;state.job=b.dataset.j===''?null:+b.dataset.j;sync();});
+el('list').addEventListener('click',function(e){var b=e.target.closest('[data-id]');if(b)openSkill(+b.dataset.id)});
+el('panel').addEventListener('click',function(e){var b=e.target.closest('.req [data-id]');if(b)openSkill(+b.dataset.id)});
+el('q').addEventListener('input',function(){state.q=this.value.trim();renderList()});
+function sync(){
+  renderTabs(); renderList();
+  try{ history.replaceState(null,'', state.branch==='전체'?location.pathname:'#'+branchKey[state.branch]); }catch(e){}
+}
+function fromHash(){
+  var m=/^#b(\d)$/.exec(location.hash); if(m&&BR[+m[1]]) state.branch=BR[+m[1]];
+}
+window.addEventListener('hashchange',function(){state.branch='전체';state.job=null;fromHash();renderTabs();renderList()});
+fromHash(); renderNote(); renderTabs(); renderList();
+
+/* 떨어지는 단풍잎 */
+(function(){
+  var cv=el('leaves'), cx=cv.getContext('2d'), L=[], W,H;
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  function size(){var r=cv.parentNode.getBoundingClientRect();W=cv.width=r.width;H=cv.height=r.height}
+  size(); window.addEventListener('resize',size);
+  var cols=['#b6360c','#d4520f','#e07a1a','#ec9a2b','#8f2a0b'];
+  for(var i=0;i<26;i++) L.push({x:Math.random()*1200,y:Math.random()*300,s:5+Math.random()*7,v:.3+Math.random()*.6,d:Math.random()*6.28,w:.01+Math.random()*.02,c:cols[i%5]});
+  function leaf(l){
+    cx.save();cx.translate(l.x,l.y);cx.rotate(l.d);cx.fillStyle=l.c;cx.beginPath();
+    for(var k=0;k<5;k++){var a=k*1.2566-1.57;cx.lineTo(Math.cos(a)*l.s,Math.sin(a)*l.s);a+=.6283;cx.lineTo(Math.cos(a)*l.s*.45,Math.sin(a)*l.s*.45)}
+    cx.closePath();cx.fill();cx.restore();
+  }
+  (function tick(){
+    cx.clearRect(0,0,W,H);
+    L.forEach(function(l){l.y+=l.v;l.x+=Math.sin(l.d)*.5-.15;l.d+=l.w;if(l.y>H+10){l.y=-10;l.x=Math.random()*W}if(l.x<-10)l.x=W+10;leaf(l)});
+    requestAnimationFrame(tick);
+  })();
+})();
+})();
+</script>
+</body>
+</html>
